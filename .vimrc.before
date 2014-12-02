@@ -1,0 +1,24 @@
+
+" In your .vimrc.before.local file
+" list only the plugin groups you will use
+" let g:billinux_bundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'testing', 'misc',]
+
+let g:billinux_bundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'markdown', 'testing', 'misc',]
+
+""let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'youcompleteme',]
+"
+" To override all the included bundles, add the following to your
+" .vimrc.bundles.local file:
+"let g:override_billinux_neobundle = 1
+
+"
+" Use .vimrc.before.fork if available
+if filereadable(expand($HOME . '/.vimrc.before.fork'))
+  call SourceIfExist($HOME.'/.vimrc.before.fork')
+endif
+
+" Use .vimrc.before.local if available
+if filereadable(expand($HOME . '/.vimrc.before.local'))
+  call SourceIfExist($HOME.'/.vimrc.before.local')
+endif
+

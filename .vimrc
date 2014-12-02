@@ -246,31 +246,6 @@ call s:create_dir(s:tmp_dir)
 let s:my_bundles_dir = s:config_dir . '/bundle'
 call s:create_dir(s:my_bundles_dir)
 
-" Colorscheme settings
-let s:colorscheme_default = 'default'
-let s:colorscheme_morning = 'solarized'
-let s:colorscheme_shining = 'molokai'
-let s:colorscheme_evening = 'molokai'
-
-" solarized settings
-let g:solarized_termcolors = 256      " 256 | 16
-let g:solarized_termtrans = 1         " 0 | 1
-let g:solarized_degrade = 0           " 0 | 1
-let g:solarized_bold = 0              " 1 | 0
-let g:solarized_underline = 0         " 1 | 0
-let g:solarized_italic = 0            " 1 | 0
-let g:solarized_contrast = 'normal'   " 'normal'| 'high' or 'low'
-let g:solarized_visibility = 'normal' " 'normal'| 'high' or 'low'
-
-" molokai settings
-let g:molokai_original = 0
-
-
-" billinux settings
-let g:billinux_use_airline = 1
-
-" Disable Vim OmniCompletion
-let g:billinux_no_omni_complete = 1
 
 "}}}
 " Encoding"{{{
@@ -1043,6 +1018,50 @@ AutocmdFT cpp inoremap <expr> e getline('.')[col('.') - 6:col('.') - 2] ==# 'con
 
 let g:c_syntax_for_h = 1
 " }}}
+" Ctags "{{{
+" ----------------------------------------------
+
+set tags=./tags;/,~/.cache/.cache/.vimtags
+
+" Make tags placed in .git/tags file available in all levels of a repository
+let gitroot = substitute(system('git rev-parse --show-toplevel'), '[\n\r]', '', 'g')
+if gitroot != ''
+  let &tags = &tags . ',' . gitroot . '/.git/tags'
+endif
+
+" }}}
+" Omnicomplete "{{{
+" ----------------------------------------------
+" To disable omni complete, add the following to your .vimrc.before.local file:
+"   let g:billinux_no_omni_complete = 1
+if !exists('g:billinux_no_omni_complete')
+  if has("autocmd") && exists("+omnifunc")
+    autocmd Filetype *
+      \if &omnifunc == "" |
+      \setlocal omnifunc=syntaxcomplete#Complete |
+      \endif
+  endif
+
+  hi Pmenu  guifg=#000000 guibg=#F8F8F8 ctermfg=black ctermbg=Lightgray
+  hi PmenuSbar  guifg=#8A95A7 guibg=#F8F8F8 gui=NONE ctermfg=darkcyan ctermbg=lightgray cterm=NONE
+  hi PmenuThumb  guifg=#F8F8F8 guibg=#8A95A7 gui=NONE ctermfg=lightgray ctermbg=darkcyan cterm=NONE
+
+  " Some convenient mappings
+  inoremap <expr> <Esc>      pumvisible() ? "\<C-e>" : "\<Esc>"
+  if exists('g:billinux_map_cr_omni_complete')
+    inoremap <expr> <CR>     pumvisible() ? "\<C-y>" : "\<CR>"
+  endif
+  inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
+  inoremap <expr> <Up>       pumvisible() ? "\<C-p>" : "\<Up>"
+  inoremap <expr> <C-d>      pumvisible() ? "\<PageDown>\<C-p>\<C-n>" : "\<C-d>"
+  inoremap <expr> <C-u>      pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<C-u>"
+
+  " Automatically open and close the popup menu / preview window
+  au CursorMovedI,InsertLeave * if pumvisible() == 0|silent! pclose|endif
+  set completeopt=menu,preview,longest
+endif
+
+" }}}
 
 "}}}
 
@@ -1092,7 +1111,7 @@ call neobundle#begin(expand(s:neobundle_dir))
 " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if ! exists('g:billinux_neobundle_groups')
-      let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'markdown', 'testing', 'misc',]
+      let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'go', 'scala', 'csv', 'markdown', 'testing', 'misc',]
   endif
 
 function! s:cache_bundles()
@@ -1146,11 +1165,13 @@ function! s:cache_bundles()
       NeoBundle 'kana/vim-smartinput'
       NeoBundle 'cohama/vim-smartinput-endwise'
       NeoBundle 'kana/vim-submode'
+      NeoBundle 'Lokaltog/powerline-fonts'
 
       if exists('g:billinux_use_airline')
         NeoBundle 'bling/vim-airline'
       else
         NeoBundle 'itchyny/lightline'
+        "NeoBundle 'Lokaltog/powerline', {'rtp': 'powerline/bindings/vim/'}
       endif
 
       NeoBundleLazy 'nathanaelkane/vim-indent-guides'
@@ -1181,7 +1202,7 @@ function! s:cache_bundles()
       " Choose your colorscheme based on the time of day
       NeoBundleLazy 'daf-/vim-daylight'
 
-      NeoBundle 'tomasr/molokai'
+      NeoBundle 'fatih/molokai'
       NeoBundle 'flazz/vim-colorschemes'
       NeoBundle 'nanotech/jellybeans.vim'
       NeoBundle 'sjl/badwolf'
@@ -1343,6 +1364,12 @@ function! s:cache_bundles()
         \   }
         \ }
 
+      NeoBundleLazy 'othree/html5-syntax.vim', {
+        \ 'autoload' : {
+        \     'filetypes' : ['html', 'xhtml'],
+        \   }
+        \ }
+
       NeoBundleLazy 'tpope/vim-haml', {
         \ 'autoload' : {
         \     'filetypes' : ['haml', 'sass', 'scss'],
@@ -1352,6 +1379,18 @@ function! s:cache_bundles()
       NeoBundleLazy 'digitaltoad/vim-jade', {
         \ 'autoload' : {
         \     'filetypes' : 'jade',
+        \   }
+        \ }
+
+      NeoBundleLazy 'ap/vim-css-color', {
+        \ 'autoload' : {
+        \     'filetypes' :['sass', 'scss', 'css'],
+        \   }
+        \ }
+
+      NeoBundleLazy 'wavded/vim-stylus', {
+        \ 'autoload' : {
+        \     'filetypes' :['sass', 'scss', 'css'],
         \   }
         \ }
 
@@ -1446,6 +1485,10 @@ function! s:cache_bundles()
   " Ruby"{{{
     if count(g:billinux_neobundle_groups, 'ruby')
 
+      NeoBundleLazy 'tpope/vim-rails', {
+        \ 'autoload' : {'filetypes' : 'ruby'}
+        \ }
+
       NeoBundleLazy 'basyura/unite-rails', {
         \ 'autoload' : {'filetypes' : 'ruby'}
         \ }
@@ -1486,6 +1529,74 @@ function! s:cache_bundles()
       NeoBundleLazy 'rhysd/clang-type-inspector.vim', {
         \ 'autoload' : {
         \       'filetypes' : ['c', 'cpp']
+        \   }
+        \ }
+
+    endif
+
+  "}}}
+  " Go"{{{
+    if count(g:billinux_neobundle_groups, 'go')
+
+      "NeoBundleLazy 'fatih/vim-go'
+      NeoBundleLazy 'Blackrush/vim-gocode', {
+        \ 'autoload' : {
+        \       'filetypes' : ['go', 'markdown'],
+        \       'commands' : 'Godoc',
+        \   }
+        \ }
+
+      NeoBundleLazy 'rhysd/unite-go-import.vim', {
+        \ 'autoload' : {
+        \     'depends' : ['Shougo/unite.vim', 'Blackrush/vim-gocode'],
+        \     'unite_sources' : 'go/import',
+        \   }
+        \ }
+
+      NeoBundleLazy 'dgryski/vim-godef', {
+        \ 'autoload' : {
+        \     'filetypes' : 'go'
+        \   }
+        \ }
+
+      NeoBundleLazy 'rhysd/vim-go-impl', {
+        \ 'autoload' : {
+        \     'filetypes' : 'go'
+        \   }
+        \ }
+
+    endif
+
+  "}}}
+  " Scala"{{{
+    if count(g:billinux_neobundle_groups, 'scala')
+
+      NeoBundleLazy 'derekwyatt/vim-scala', {
+        \ 'autoload' : {
+        \     'filetypes' : 'scala'
+        \   }
+        \ }
+
+      NeoBundleLazy 'derekwyatt/vim-sbt', {
+        \ 'autoload' : {
+        \     'filetypes' : 'scala'
+        \   }
+        \ }
+
+      NeoBundleLazy 'xptemplate', {
+        \ 'autoload' : {
+        \     'filetypes' : 'scala'
+        \   }
+        \ }
+    endif
+
+  "}}}
+  " Csv"{{{
+    if count(g:billinux_neobundle_groups, 'csv')
+
+      NeoBundleLazy 'chrisbra/csv.vim', {
+        \ 'autoload' : {
+        \     'filetypes' : 'csv'
         \   }
         \ }
 
@@ -1767,16 +1878,16 @@ nnoremap <silent><Leader>nbh :<C-u>execute 'BrowseNeoBundleHome' matchstr(getlin
 if strftime("%H") >=  5 && strftime("%H") <=  17
   set background=light
   try
-    exec 'colorscheme '.s:colorscheme_morning
+    exec 'colorscheme '.g:colorscheme_morning
   catch
-    exec 'colorscheme '.s:colorscheme_default
+    exec 'colorscheme '.g:colorscheme_default
   endtry
 else
   set background=dark
   try
-    exec 'colorscheme '.s:colorscheme_evening
+    exec 'colorscheme '.g:colorscheme_evening
   catch
-    exec 'colorscheme '.s:colorscheme_default
+    exec 'colorscheme '.g:colorscheme_default
   endtry
 endif
 
@@ -2243,9 +2354,13 @@ endif
 " NerdTree "{{{
 " ----------------------------------------------
 if isdirectory(expand(s:neobundle_dir.'/nerdtree'))
+
+
   map <C-e> <plug>NERDTreeTabsToggle<CR>
   map <leader>e :NERDTreeFind<CR>
   nmap <leader>nt :NERDTreeFind<CR>
+
+  let NERDShutUp=1
 
   let NERDTreeShowBookmarks=1
   let NERDTreeIgnore=['\.py[cd]$', '\~$', '\.swo$', '\.swp$', '^\.git$', '^\.hg$', '^\.svn$', '\.bzr$']
@@ -3225,13 +3340,24 @@ endif
 " Tagbar "{{{
 " ----------------------------------------------
 if isdirectory(expand(s:neobundle_dir.'/tagbar'))
-  set tags=./tags;/,~/.cache/.cache/.vimtags
 
-  " Make tags placed in .git/tags file available in all levels of a repository
-  let gitroot = substitute(system('git rev-parse --show-toplevel'), '[\n\r]', '', 'g')
-  if gitroot != ''
-    let &tags = &tags . ',' . gitroot . '/.git/tags'
-  endif
+  nnoremap <silent> <leader>tt :TagbarToggle<CR>
+
+  " If using go please install the gotags program using the following
+  " go install github.com/jstemmer/gotags
+  " And make sure gotags is in your path
+  let g:tagbar_type_go = {
+      \ 'ctagstype' : 'go',
+      \ 'kinds'     : [  'p:package', 'i:imports:1', 'c:constants', 'v:variables',
+          \ 't:types',  'n:interfaces', 'w:fields', 'e:embedded', 'm:methods',
+          \ 'r:constructor', 'f:functions' ],
+      \ 'sro' : '.',
+      \ 'kind2scope' : { 't' : 'ctype', 'n' : 'ntype' },
+      \ 'scope2kind' : { 'ctype' : 't', 'ntype' : 'n' },
+      \ 'ctagsbin'  : 'gotags',
+      \ 'ctagsargs' : '-sort -silent'
+      \ }
+
 endif
 
 " }}}
@@ -3432,9 +3558,17 @@ if isdirectory(expand(s:neobundle_dir.'/vim-fugitive'))
   endfunction
   nnoremap <Leader>gc :<C-u>call <SID>fugitive_commit()<CR>
   nnoremap <Leader>gl :<C-u>QuickRun sh -src 'git log --graph --oneline'<CR>
-  nnoremap <Leader>ga :<C-u>Gwrite<CR>
+  nnoremap <Leader>ge :<C-u>Gedit<CR>
+  nnoremap <Leader>gr :<C-u>Gread<CR>
+  nnoremap <Leader>gw :<C-u>Gwrite<CR>
   nnoremap <Leader>gd :<C-u>Gdiff<CR>
   nnoremap <Leader>gb :<C-u>Gblame<CR>
+  nnoremap <Leader>gp :<C-u>Git push<CR>
+
+  " Mnemonic _i_nteractive
+  nnoremap <Leader>gi :<C-u>Git add -p %<CR>
+  nnoremap <Leader>gg :<C-u>SignifyToggle<CR>
+
 
   let s:bundle = neobundle#get("vim-fugitive")
   function! s:bundle.hooks.on_post_source(bundle)
@@ -3756,6 +3890,37 @@ endif
 " }}}
 
 "}}}
+
+" Go: {{{
+
+function! s:golang_settings()
+
+  " Godoc
+  nnoremap <buffer><silent>K :<C-u>execute 'Godoc' expand('<cword>')<CR>
+  "   Note: 'fmt.Printf' -> 'fmt Printf'
+  vnoremap <buffer><silent>K y:<C-u>execute 'Godoc' substitute(getreg('+'), '\.', ' ', 'g')<CR>
+  "
+  nnoremap <buffer><silent>:gi :<C-u>execute 'Import' expand('<cword>')<CR>
+  "
+  nnoremap <buffer>:gd :<C-u>Drop<Space>
+  "
+  nnoremap <buffer>:gf :<C-u>Fmt<CR>
+  "
+  inoremap <buffer><silent><C-g>i <C-o>:<C-u>execute 'Import' matchstr(getline('.')[:col('.')-1], '\h\w*\ze\W*$')<CR><Right>
+  "
+  setlocal noexpandtab
+  let g:go_fmt_autofmt = 1
+  nnoremap <buffer><Space>i :<C-u>Unite go/import<CR>
+  let g:godef_split = 0
+  let g:godef_same_file_in_same_window = 1
+
+endfunction
+
+AutocmdFT go call <SID>golang_settings()
+AutocmdFT godoc nnoremap<buffer>q :<C-u>quit<CR>
+AutocmdFT godoc nnoremap<buffer>d <C-d>
+AutocmdFT godoc nnoremap<buffer>u <C-u>
+" }}}
 
 " Markdown:"{{{
 

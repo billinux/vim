@@ -5,20 +5,54 @@
 
 let g:billinux_bundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'markdown', 'testing', 'misc',]
 
-""let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'youcompleteme',]
+" let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'youcompleteme',]
 "
 " To override all the included bundles, add the following to your
 " .vimrc.bundles.local file:
 "let g:override_billinux_neobundle = 1
 
-"
+" To disable omni complete, add the following to your .vimrc.before.local file:
+let g:billinux_no_omni_complete = 1
+
+
+" To enable vim-airline instead of lightline
+let g:billinux_use_airline = 1
+
+" To match the original monokai background color
+let g:molokai_original = 0
+" To bring the 256 color version as close as possible to the the default (dark) GUI version
+let g:rehash256 = 1
+
+" Colorscheme settings
+let g:colorscheme_default = 'default'
+let g:colorscheme_morning = 'solarized'
+let g:colorscheme_shining = 'molokai'
+let g:colorscheme_evening = 'molokai'
+
+" To customize solarized colorscheme if needed
+let g:solarized_termcolors = 256      " 256 | 16
+let g:solarized_termtrans = 1         " 0 | 1
+let g:solarized_degrade = 0           " 0 | 1
+let g:solarized_bold = 0              " 1 | 0
+let g:solarized_underline = 0         " 1 | 0
+let g:solarized_italic = 0            " 1 | 0
+let g:solarized_contrast = 'normal'   " 'normal'| 'high' or 'low'
+let g:solarized_visibility = 'normal' " 'normal'| 'high' or 'low'
+
+
+
+
+
+
+
+
+
+
+
+
 " Use .vimrc.before.fork if available
-if filereadable(expand($HOME . '/.vimrc.before.fork'))
-  call SourceIfExist($HOME.'/.vimrc.before.fork')
-endif
+call SourceIfExist($HOME.'/.vimrc.before.fork')
 
 " Use .vimrc.before.local if available
-if filereadable(expand($HOME . '/.vimrc.before.local'))
-  call SourceIfExist($HOME.'/.vimrc.before.local')
-endif
+call SourceIfExist($HOME.'/.vimrc.before.local')
 

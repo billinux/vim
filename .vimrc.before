@@ -25,7 +25,7 @@ let g:rehash256 = 1
 
 " Colorscheme settings
 let g:colorscheme_default = 'default'
-let g:colorscheme_morning = 'solarized'
+let g:colorscheme_morning = 'molokai'
 let g:colorscheme_shining = 'molokai'
 let g:colorscheme_evening = 'molokai'
 

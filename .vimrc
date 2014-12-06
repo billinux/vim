@@ -10,6 +10,7 @@ if !1 | finish | endif
 
 " This is vim, not vi
 set nocompatible
+filetype off
 
 function! s:get_SID()
   return matchstr(expand('<sfile>'), '<SNR>\d\+_\zeget_SID$')
@@ -281,8 +282,6 @@ set autoindent smartindent
 set tabstop=2 shiftwidth=2 softtabstop=2
 set shiftround
 set expandtab
-set wrap
-set wrapscan
 set textwidth=0
 set smarttab
 set fileformats=unix,dos,mac
@@ -318,6 +317,7 @@ set incsearch
 set magic
 set showmatch
 set matchtime=2
+set matchpairs+=<:>
 
 " Sane regex"{{{
 nnoremap / /\v
@@ -431,10 +431,12 @@ set keywordprg=SmartHelp
 set linebreak
 " Breakindent"{{{
 if exists('+breakindent')
+  set wrap
   set breakindent
   set breakindentopt=shift:-4
   let &showbreak='↪ '
-  "let &showbreak = '>>> '
+else
+  set nowrap
 endif
 "}}}
 " Navigate line by line through wrapped text (skip wrapped lines)."{{{
@@ -539,10 +541,20 @@ let &directory = s:swap_dir
 "}}}
 "}}}
 " Wild menu completion"{{{
-set wildcharm=<C-Z>
-set wildmenu wildmode=list:longest,full
-set wildignorecase
-set wildignore+=*.swp,*.pyc,*.class,*.o,*.obj,tags
+
+if has('wildmenu')
+  set nowildmenu
+  set wildmode=list:longest,full
+  set wildoptions=tagfile
+  set wildignorecase
+  set wildignore+=.hg,.git,.svn,*.pyc,*.spl,*.o,*.out,*~,#*#,%*
+  set wildignore+=*.jpg,*.jpeg,*.png,*.gif,*.zip,**/tmp/**,*.DS_Store
+  set wildignore+=**/cache/??,**/cache/mustache,**/cache/media,**/logs/????
+  set wildignore+=*/vendor/gems/*,*/vendor/cache/*,*/.sass-cache/*
+  set wildcharm=<C-Z>
+endif
+
+
 "}}}
 " Better completion"{{{
 set complete=.,w,b,u,t
@@ -809,7 +821,7 @@ endif
 ""  Autocmd CursorHold,CursorHoldI,WinEnter * setlocal cursorline
 "augroup END
 ""}}}
-"" Cursorcolumn"{{{
+" Cursorcolumn"{{{
 "set cursorcolumn
 "let &colorcolumn=s:settings.max_column
 "if exists('s:settings.no_cursorcolumn')
@@ -892,6 +904,7 @@ map <F6> :runtime! syntax/2html.vim
 " Paste"{{{
 " Toggle paste"{{{
 map <F12> :set invpaste<CR>:set paste?<CR>
+map <Leader>, :set invpaste<CR>:set paste?<CR>
 "}}}
 " Reselect last paste"{{{
 nnoremap <expr> gp '`[' . strpart(getregtype(), 0, 1) . '`]'
@@ -910,8 +923,8 @@ if executable('chmod')
 endif
 "}}}
 
-" Filetype
-" ---------
+" Customization"{{{
+" ----------------------------------------------
 
 " Html,Css, Sass, Scss, Haml {{{
 AutocmdFT html,javascript
@@ -1062,6 +1075,69 @@ if !exists('g:billinux_no_omni_complete')
 endif
 
 " }}}
+" Custom Colors"{{{
+" ----------------------------------------------
+
+" General GUI {{{
+" No bold in gvim's error messages
+highlight ErrorMsg     gui=NONE
+" Whitespace
+highlight SpecialKey   ctermfg=235  guifg=#30302c
+" YAML scalar
+highlight yamlScalar   ctermfg=250  guifg=#a8a897
+" Last search highlighting and quickfix's current line
+highlight Search       ctermfg=183  ctermbg=237
+" Brakets and pairs
+highlight MatchParen   ctermfg=220  ctermbg=237
+" Markdown headers
+highlight link htmlH1 Statement
+" Mode message (insert, visual, etc)
+highlight ModeMsg      ctermfg=240
+" Visual mode selection
+highlight Visual       ctermbg=236
+
+" }}}
+" Popup menu {{{
+highlight Pmenu       ctermfg=245 ctermbg=235
+highlight PmenuSel    ctermfg=236 ctermbg=248
+highlight PmenuSbar   ctermbg=235
+highlight PmenuThumb  ctermbg=238
+
+" }}}
+" Unite {{{
+highlight uniteInputPrompt            ctermfg=237
+highlight uniteCandidateMarker        ctermfg=143
+highlight uniteCandidateInputKeyword  ctermfg=12
+
+" }}}
+" Grep {{{
+highlight link uniteSource__Grep        Directory
+highlight link uniteSource__GrepLineNr  qfLineNr
+highlight uniteSource__GrepLine         ctermfg=245 guifg=#808070
+highlight uniteSource__GrepFile         ctermfg=4   guifg=#8197bf
+highlight uniteSource__GrepSeparator    ctermfg=5   guifg=#f0a0c0
+highlight uniteSource__GrepPattern      ctermfg=1   guifg=#cf6a4c
+
+" }}}
+" Quickfix {{{
+highlight UniteQuickFixWarning              ctermfg=1
+highlight uniteSource__QuickFix             ctermfg=8
+highlight uniteSource__QuickFix_Bold        ctermfg=249
+highlight link uniteSource__QuickFix_File   Directory
+highlight link uniteSource__QuickFix_LineNr qfLineNr
+
+" }}}
+" VimFiler {{{
+highlight vimfilerNormalFile  ctermfg=245 guifg=#808070
+highlight vimfilerClosedFile  ctermfg=249 guifg=#a8a897
+highlight vimfilerOpenedFile  ctermfg=254 guifg=#e8e8d3
+highlight vimfilerNonMark     ctermfg=239 guifg=#4e4e43
+highlight vimfilerLeaf        ctermfg=235 guifg=#30302c
+
+" }}}
+
+"}}}
+"}}}
 
 "}}}
 
@@ -1101,8 +1177,6 @@ if has('vim_starting')
 endif
 "}}}
 
-let s:meet_neocomplete_requirements = has('lua') && (v:version > 703 || (v:version == 703 && has('patch885')))
-let s:enable_tern_for_vim = has('python') && executable('npm')
 
 call neobundle#begin(expand(s:neobundle_dir))
 
@@ -1111,20 +1185,22 @@ call neobundle#begin(expand(s:neobundle_dir))
 " In your .vimrc.before.local file
   " list only the plugin groups you will use
   if ! exists('g:billinux_neobundle_groups')
-      let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'go', 'scala', 'csv', 'markdown', 'testing', 'misc',]
+      let g:billinux_neobundle_groups=['library', 'general', 'colorscheme', 'neocomplcache', 'programming', 'writing', 'html', 'php', 'javascript', 'python', 'ruby', 'json', 'cpp', 'go', 'scala', 'csv', 'yaml', 'markdown', 'testing', 'misc',]
   endif
 
-function! s:cache_bundles()
+      let s:enable_tern_for_vim = has('python') && executable('npm')
+function! s:cache_bundles() "{{{
 
   NeoBundleFetch 'Shougo/neobundle.vim'
-
 
   " To override all the included bundles, add the following to your
   " .vimrc.bundles.local file:
   "   let g:override_billinux_neobundle = 1
   if ! exists("g:override_billinux_neobundle")
 
-  " Library"{{{
+" Library"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'library')
 
       NeoBundle 'Shougo/vimproc.vim', {
@@ -1149,23 +1225,27 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " General"{{{
+
+" General"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'general')
-      NeoBundle 'scrooloose/nerdtree'
+
+      NeoBundle 'tomtom/tcomment_vim'
       NeoBundle 'tpope/vim-surround'
       NeoBundle 'tpope/vim-repeat'
       NeoBundle 'spf13/vim-autoclose'
-      NeoBundle 'kien/ctrlp.vim'
-      NeoBundle 'tacahiroy/ctrlp-funky'
+      NeoBundleLazy 'kien/ctrlp.vim'
+      NeoBundleLazy 'tacahiroy/ctrlp-funky'
       NeoBundle 'kristijanhusak/vim-multiple-cursors'
-      NeoBundle 'vim-scripts/sessionman.vim'
-      NeoBundle 'matchit.zip'
       NeoBundle 'tpope/vim-abolish.git'
       NeoBundle 'gcmt/wildfire.vim'
       NeoBundle 'kana/vim-smartinput'
       NeoBundle 'cohama/vim-smartinput-endwise'
       NeoBundle 'kana/vim-submode'
-      NeoBundle 'Lokaltog/powerline-fonts'
+      NeoBundleLazy 'Lokaltog/powerline-fonts'
+
+      NeoBundleLazy 'matchit.zip', { 'mappings': [[ 'nxo', '%', 'g%' ]]}
 
       if exists('g:billinux_use_airline')
         NeoBundle 'bling/vim-airline'
@@ -1177,14 +1257,35 @@ function! s:cache_bundles()
       NeoBundleLazy 'nathanaelkane/vim-indent-guides'
       NeoBundleLazy 't9md/vim-quickhl' " quickly highlight <cword> or visually selected word
 
+      NeoBundleLazy 'xolox/vim-session', {
+        \ 'depends': 'xolox/vim-misc',
+        \ 'augroup': 'PluginSession',
+        \ 'autoload': {
+        \ 'commands': [
+        \   { 'name': [ 'OpenSession', 'CloseSession' ],
+        \     'complete': 'customlist,xolox#session#complete_names' },
+        \   { 'name': [ 'SaveSession' ],
+        \     'complete': 'customlist,xolox#session#complete_names_with_suggestions' }
+        \ ],
+        \ 'functions': [ 'xolox#session#complete_names',
+        \                'xolox#session#complete_names_with_suggestions' ],
+        \ 'unite_sources': [ 'session', 'session/new' ]
+        \ }}
+
+      NeoBundleLazy 'farseer90718/vim-colorpicker', {
+        \ 'disabled': ! has('python'),
+        \ 'commands': 'ColorPicker'
+        \ }
+
+      NeoBundleLazy 'sjl/gundo.vim', {
+        \ 'disabled': ! has('python'),
+        \ 'autoload': { 'commands': [ 'GundoToggle' ] }
+        \ }
+
   " Gui
   " ---
 
-      NeoBundleLazy 'nathanaelkane/vim-indent-guides', {
-        \   'autoload' : {
-        \     'filetypes' : ['haskell', 'python']
-        \   }
-        \ }
+      NeoBundleLazy 'nathanaelkane/vim-indent-guides'
 
       NeoBundleLazy 'tyru/restart.vim', {
         \   'gui' : 1,
@@ -1196,23 +1297,22 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Colorscheme"{{{
+
+" Colorscheme"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'colorscheme')
 
       " Choose your colorscheme based on the time of day
       NeoBundleLazy 'daf-/vim-daylight'
 
       NeoBundle 'fatih/molokai'
-      NeoBundle 'flazz/vim-colorschemes'
-      NeoBundle 'nanotech/jellybeans.vim'
-      NeoBundle 'sjl/badwolf'
-      NeoBundle 'zeis/vim-kolor'
-      NeoBundle 'chriskempson/tomorrow-theme', {'rtp' : 'vim'}
-      NeoBundle 'altercation/vim-colors-solarized', {'gui' : 1}
+      NeoBundleLazy 'flazz/vim-colorschemes'
+      ""NeoBundleLazy 'altercation/vim-colors-solarized', {'gui' : 1}
+      NeoBundle 'altercation/vim-colors-solarized'
 
       " 16-colors colorscheme
       NeoBundle 'chriskempson/base16-vim'
-      NeoBundle 'noahfrederick/vim-noctu'
 
       " Xterm table colors
       NeoBundleLazy 'guns/xterm-color-table.vim', {
@@ -1224,19 +1324,23 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Neocomplete, Neocomplcache, Youcompleteme"{{{
-    if count(g:billinux_neobundle_groups, 'neocomplete') && s:meet_neocomplete_requirements
 
-      NeoBundle 'Shougo/neocomplete.vim'
-      NeoBundle 'Shougo/neosnippet'
-      NeoBundle 'Shougo/neosnippet-snippets'
+" Neocomplete, Neocomplcache, Youcompleteme"{{{
+" -------------------------------------------------------------------
+
+    if count(g:billinux_neobundle_groups, 'neocomplete')
+
+      NeoBundle 'Shougo/neocomplete', {
+        \ 'depends': 'Shougo/context_filetype.vim',
+        \ 'disabled': ! has('lua'),
+        \ 'insert': 1
+        \ }
+
       NeoBundle 'rhysd/inu-snippets'
 
     elseif count(g:billinux_neobundle_groups, 'neocomplcache')
 
       NeoBundle 'Shougo/neocomplcache.vim'
-      NeoBundle 'Shougo/neosnippet'
-      NeoBundle 'Shougo/neosnippet-snippets'
       NeoBundle 'rhysd/inu-snippets'
 
     elseif count(g:billinux_neobundle_groups, 'youcompleteme')
@@ -1246,6 +1350,7 @@ function! s:cache_bundles()
       NeoBundle 'honza/vim-snippets'
 
     elseif count(g:billinux_neobundle_groups, 'snipmate')
+
       NeoBundle 'garbas/vim-snipmate'
       NeoBundle 'honza/vim-snippets'
 
@@ -1254,8 +1359,27 @@ function! s:cache_bundles()
 
     endif
 
+    if count(g:billinux_neobundle_groups, 'neocomplete') || count(g:billinux_neobundle_groups, 'neocomplcache')
+
+      NeoBundleLazy 'Shougo/neosnippet.vim', {
+        \ 'depends': 'Shougo/context_filetype.vim',
+        \ 'insert': 1,
+        \ 'filetypes': 'snippet',
+        \ 'unite_sources': [
+        \    'neosnippet', 'neosnippet/user', 'neosnippet/runtime'
+        \ ]}
+
+      NeoBundleLazy 'Shougo/neosnippet-snippets', {
+        \ 'filetypes': 'snippet',
+        \ }
+
+    endif
+
   "}}}
-  " Programming"{{{
+
+" Programming"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'programming')
 
       NeoBundleLazy 'Shougo/vimshell', {
@@ -1273,19 +1397,37 @@ function! s:cache_bundles()
         \     }
         \ }
 
-      NeoBundle 'godlygeek/tabular'
+      NeoBundleLazy 'godlygeek/tabular'
 
       if executable('ctags')
-        NeoBundle 'majutsushi/tagbar'
+        NeoBundleLazy 'majutsushi/tagbar'
       endif
 
+      NeoBundleLazy 'koron/codic-vim', {
+        \ 'autoload' : {
+        \       'commands' : 'Codic',
+        \   }
+        \ }
+
+    NeoBundleLazy 'rhysd/unite-codic.vim', {
+        \ 'depends' : [
+        \       'Shougo/unite.vim',
+        \       'koron/codic-vim',
+        \   ],
+        \ 'autoload' : {
+        \       'unite_sources' : 'codic',
+        \   },
+        \ }
+
       " Unite"{{{
-      NeoBundle 'Shougo/unite-outline'
-      NeoBundle 'osyo-manga/unite-quickfix'
-      NeoBundle 'rhysd/quickrun-unite-quickfix-outputter'
-      NeoBundle 'Shougo/unite-help'
-      NeoBundle 'thinca/vim-unite-history'
-      NeoBundle 'ujihisa/unite-colorscheme'
+      " -----
+
+      NeoBundleLazy 'Shougo/unite-outline'
+      NeoBundleLazy 'osyo-manga/unite-quickfix'
+      NeoBundleLazy 'rhysd/quickrun-unite-quickfix-outputter'
+      NeoBundleLazy 'Shougo/unite-help'
+      NeoBundleLazy 'thinca/vim-unite-history'
+      NeoBundleLazy 'ujihisa/unite-colorscheme'
 
       NeoBundleLazy 'Shougo/unite.vim', {
         \   'autoload' : {
@@ -1307,7 +1449,9 @@ function! s:cache_bundles()
         \ }
 "}}}
     " Motion"{{{
-      NeoBundle 'Lokaltog/vim-easymotion', {
+    " ------
+
+      NeoBundleLazy 'Lokaltog/vim-easymotion', {
         \ 'autoload' : {
         \       'mappings' : '<Plug>(easymotion-',
         \   }
@@ -1322,7 +1466,11 @@ function! s:cache_bundles()
       \   }
       \ }
 
-    NeoBundleLazy 'gregsexton/gitv'
+    NeoBundleLazy 'gregsexton/gitv', {
+      \ 'depends': 'tpope/vim-fugitive',
+      \ 'autoload': { 'commands': [ 'Gitv' ] }
+      \ }
+
     NeoBundle 'mhinz/vim-signify'
     NeoBundleLazy 'thinca/vim-openbuf'
 
@@ -1346,7 +1494,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Html, Sass, Scss"{{{
+
+" Html, Sass, Scss"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'html')
 
       NeoBundleLazy 'mattn/emmet-vim', {
@@ -1366,8 +1517,14 @@ function! s:cache_bundles()
 
       NeoBundleLazy 'othree/html5-syntax.vim', {
         \ 'autoload' : {
-        \     'filetypes' : ['html', 'xhtml'],
+        \     'filetypes' : ['html', 'xhtml', 'jst', 'ejs'],
         \   }
+        \ }
+
+      NeoBundleLazy 'mustache/vim-mustache-handlebars', {
+        \ 'autoload' : {
+        \   'filetypes': ['html', 'mustache', 'hbs']
+        \  }
         \ }
 
       NeoBundleLazy 'tpope/vim-haml', {
@@ -1384,7 +1541,13 @@ function! s:cache_bundles()
 
       NeoBundleLazy 'ap/vim-css-color', {
         \ 'autoload' : {
-        \     'filetypes' :['sass', 'scss', 'css'],
+        \     'filetypes' :['sass', 'scss', 'less', 'css'],
+        \   }
+        \ }
+
+      NeoBundleLazy 'hail2u/vim-css3-syntax', {
+        \ 'autoload' : {
+        \     'filetypes' :['sass', 'scss', 'less', 'css'],
         \   }
         \ }
 
@@ -1394,17 +1557,48 @@ function! s:cache_bundles()
         \   }
         \ }
 
+      NeoBundleLazy 'groenewege/vim-less', {
+          \ 'autoload' : {
+          \   'filetypes' : 'less',
+          \ }}
+
     endif
 
   "}}}
-  " Php"{{{
+
+" Php"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'php')
 
-      NeoBundleLazy 'spf13/PIV', {
+      NeoBundleLazy 'StanAngeloff/php.vim', {
         \ 'autoload' : {
         \     'filetypes' : ['php'],
         \   }
         \ }
+
+      NeoBundleLazy 'rayburgemeestre/phpfolding.vim', {
+        \ 'autoload' : {
+        \     'filetypes' : ['php'],
+        \   }
+        \ }
+
+      NeoBundleLazy 'shawncplus/phpcomplete.vim', {
+        \ 'autoload' : {
+        \     'filetypes' : ['php'],
+        \     'insert' : 1,
+        \   }
+        \ }
+
+      NeoBundleLazy 'tobyS/pdv', {
+      \ 'filetypes': 'php',
+      \ 'depends': 'tobyS/vmustache'
+      \ }
+
+      NeoBundleLazy '2072/PHP-Indenting-for-VIm', {
+      \ 'filetypes': 'php',
+      \ 'directory': 'php-indent'
+      \ }
 
       NeoBundleLazy 'arnaud-lb/vim-php-namespace', {
         \ 'autoload' : {
@@ -1421,7 +1615,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Javascript"{{{
+
+" Javascript"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'javascript')
 
       NeoBundleLazy 'pangloss/vim-javascript', {
@@ -1438,6 +1635,10 @@ function! s:cache_bundles()
         \ 'autoload' : {'filetypes' : 'javascript'}
         \ }
 
+      " Require Nodejs and npm
+      " # aptitude install nodejs
+      " # curl https://www.npmjs.org/install.sh | sudo sh
+      " node -v and npm -v
       if s:enable_tern_for_vim
         NeoBundleLazy 'marijnh/tern_for_vim', {
           \ 'build' : {
@@ -1446,6 +1647,7 @@ function! s:cache_bundles()
           \     'mac'     : 'npm install',
           \     'unix'    : 'npm install',
           \   },
+          \ 'disabled' : !executable('npm'),
           \ 'autoload' : {
           \     'functions' : ['tern#Complete', 'tern#Enable'],
           \     'filetypes' : 'javascript'
@@ -1464,7 +1666,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Python"{{{
+
+" Python"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'python')
 
       NeoBundleLazy 'davidhalter/jedi-vim', {
@@ -1482,7 +1687,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Ruby"{{{
+
+" Ruby"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'ruby')
 
       NeoBundleLazy 'tpope/vim-rails', {
@@ -1504,7 +1712,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Cpp"{{{
+
+" Cpp"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'cpp')
 
       NeoBundleLazy 'vim-jp/cpp-vim', {
@@ -1535,7 +1746,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Go"{{{
+
+" Go"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'go')
 
       "NeoBundleLazy 'fatih/vim-go'
@@ -1568,7 +1782,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Scala"{{{
+
+" Scala"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'scala')
 
       NeoBundleLazy 'derekwyatt/vim-scala', {
@@ -1591,7 +1808,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Csv"{{{
+
+" Csv"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'csv')
 
       NeoBundleLazy 'chrisbra/csv.vim', {
@@ -1603,8 +1823,32 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Markdown"{{{
+
+" Yaml"{{{
+" -------------------------------------------------------------------
+
+    if count(g:billinux_neobundle_groups, 'yaml')
+
+      NeoBundleLazy 'chase/vim-ansible-yaml', {
+        \ 'autoload' : {
+        \     'filetypes' : 'yaml'
+        \   }
+        \ }
+
+    endif
+
+  "}}}
+
+" Markdown"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'markdown')
+
+      NeoBundleLazy 'plasticboy/vim-markdown', {
+        \ 'autoload' : {
+        \     'filetypes' : ['markdown'],
+        \   }
+        \ }
 
       NeoBundleLazy 'kannokanno/previm', {
         \ 'depends' : 'tyru/open-browser.vim',
@@ -1617,7 +1861,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Json"{{{
+
+" Json"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'json')
 
       NeoBundleLazy 'elzr/vim-json', {
@@ -1627,7 +1874,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Writing"{{{
+
+" Writing"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'writing')
 
       NeoBundleLazy 'kana/vim-textobj-indent', {
@@ -1710,7 +1960,10 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Testing"{{{
+
+" Testing"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'testing')
 
       command! -nargs=1 NeoBundleMyPlugin
@@ -1731,10 +1984,13 @@ function! s:cache_bundles()
     endif
 
   "}}}
-  " Misc"{{{
+
+" Misc"{{{
+" -------------------------------------------------------------------
+
     if count(g:billinux_neobundle_groups, 'misc')
 
-      NeoBundle 'thinca/vim-quickrun'
+      NeoBundleLazy 'thinca/vim-quickrun'
 
 
       " Tmux
@@ -1796,7 +2052,9 @@ function! s:cache_bundles()
 
       NeoBundle 'rhysd/vim-numberstar'
 
-    " TweetVim"{{{
+" TweetVim"{{{
+" -------------------------------------------------------------------
+
       NeoBundleLazy 'basyura/twibill.vim'
       NeoBundleLazy 'yomi322/neco-tweetvim'
       NeoBundleLazy 'rhysd/tweetvim-advanced-filter'
@@ -1824,27 +2082,33 @@ function! s:cache_bundles()
 
   endif
 
-  NeoBundleCheck
-  NeoBundleSaveCache
+""  NeoBundleCheck
+""  NeoBundleSaveCache
 
-endfunction
+endfunction "}}}
+
 "}}}
 " ReadOnly, use sudo.vim"{{{
 Autocmd FileChangedRO * NeoBundleSource sudo.vim
 Autocmd FileChangedRO * execute "command! W SudoWrite" expand('%')
 "}}}
 " Neobundleloadcache"{{{
-"if neobundle#has_cache()
-"  NeoBundleLoadCache
-"else
+if neobundle#has_cache()
+  NeoBundleLoadCache
+else
   call s:cache_bundles()
-"endif
+  NeoBundleSaveCache
+endif
 "}}}
 
 call neobundle#end()
 
 filetype plugin indent on     " required!
 syntax enable
+
+" Plugin installation check
+NeoBundleCheck"
+
 
 " Neobundleclearcache"{{{
 Autocmd BufWritePost .vimrc,.gvimrc,*vimrc,*gvimrc NeoBundleClearCache
@@ -1874,25 +2138,25 @@ nnoremap <silent><Leader>nbh :<C-u>execute 'BrowseNeoBundleHome' matchstr(getlin
 " UI:"{{{
 " Common settings
 " ---------------
+set t_Co=256
 
-if strftime("%H") >=  5 && strftime("%H") <=  17
-  set background=light
-  try
-    exec 'colorscheme '.g:colorscheme_morning
-  catch
-    exec 'colorscheme '.g:colorscheme_default
-  endtry
+if &t_Co < 256
+  exec 'colorscheme '.g:colorscheme_default
+elseif strftime("%H") >=  5 && strftime("%H") <=  17
+set background=light
+try
+  exec 'colorscheme '.g:colorscheme_morning
+catch
+  exec 'colorscheme '.g:colorscheme_default
+endtry
 else
-  set background=dark
-  try
-    exec 'colorscheme '.g:colorscheme_evening
-  catch
-    exec 'colorscheme '.g:colorscheme_default
-  endtry
+set background=dark
+try
+  exec 'colorscheme '.g:colorscheme_evening
+catch
+  exec 'colorscheme '.g:colorscheme_default
+endtry
 endif
-
-"colorscheme molokai
-"set background=dark
 
 " Environment
 " -----------
@@ -2010,6 +2274,41 @@ else
     " different cursors for insert vs normal mode
     if exists('$TMUX')
       set t_Co=256
+
+
+      set ttymouse=sgr
+      " execute 'silent !echo -e "\033kvim\033\\"'
+
+      execute "set <xUp>=\e[1;*A"
+      execute "set <xDown>=\e[1;*B"
+      execute "set <xRight>=\e[1;*C"
+      execute "set <xLeft>=\e[1;*D"
+
+      execute "set <xHome>=\e[1;*H"
+      execute "set <xEnd>=\e[1;*F"
+
+      execute "set <Insert>=\e[2;*~"
+      execute "set <Delete>=\e[3;*~"
+      execute "set <PageUp>=\e[5;*~"
+      execute "set <PageDown>=\e[6;*~"
+
+      execute "set <xF1>=\e[1;*P"
+      execute "set <xF2>=\e[1;*Q"
+      execute "set <xF3>=\e[1;*R"
+      execute "set <xF4>=\e[1;*S"
+
+      execute "set <F5>=\e[15;*~"
+      execute "set <F6>=\e[17;*~"
+      execute "set <F7>=\e[18;*~"
+      execute "set <F8>=\e[19;*~"
+      execute "set <F9>=\e[20;*~"
+      execute "set <F10>=\e[21;*~"
+      execute "set <F11>=\e[23;*~"
+      execute "set <F12>=\e[24;*~"
+
+      execute "set t_kP=^[[5;*~"
+      execute "set t_kN=^[[6;*~"
+
       let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
       let &t_EI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=0\x7\<Esc>\\"
     else
@@ -2268,8 +2567,9 @@ map <Leader>P :! php -q %<CR>
 
 au FileType php set omnifunc=phpcomplete#CompletePHP
 "
-Autocmd BufEnter * if line('$') > 10000 | setlocal nonumber | else | setlocal number | endif
 
+autocmd FileType php
+    \ nnoremap <silent><buffer> <Leader>k :call pdv#DocumentCurrentLine()<CR>
 "
 Autocmd BufReadPost *
     \ if line("'\"") > 1 && line("'\"") <= line("$") |
@@ -2355,21 +2655,13 @@ endif
 " ----------------------------------------------
 if isdirectory(expand(s:neobundle_dir.'/nerdtree'))
 
+  let g:NERDTreeChDirMode=2
+  let g:NERDChristmasTree=1
 
-  map <C-e> <plug>NERDTreeTabsToggle<CR>
-  map <leader>e :NERDTreeFind<CR>
-  nmap <leader>nt :NERDTreeFind<CR>
+  nmap <leader>t :NeoBundleSource nerdtree<CR>:NERDTreeToggle<CR>
 
-  let NERDShutUp=1
-
-  let NERDTreeShowBookmarks=1
-  let NERDTreeIgnore=['\.py[cd]$', '\~$', '\.swo$', '\.swp$', '^\.git$', '^\.hg$', '^\.svn$', '\.bzr$']
-  let NERDTreeChDirMode=0
-  let NERDTreeQuitOnOpen=1
-  let NERDTreeMouseMode=2
-  let NERDTreeShowHidden=1
-  let NERDTreeKeepTreeInNewTab=1
-  let g:nerdtree_tabs_open_on_gui_startup=0
+  " Exit vim if NERDTree is the last window open
+  au bufenter * if (winnr("$")== 1 && exists("b:NERDTreeType") && b:NERDTreeType ==  "primary") | q | endif"
 
 endif
 
@@ -2449,14 +2741,16 @@ if isdirectory(expand(s:neobundle_dir.'/vim-multiple-cursors'))
 endif
 
 " }}}
-" Session.vim "{{{
+" Vim-session "{{{
 " ----------------------------------------------
-if isdirectory(expand(s:neobundle_dir.'/sessionman.vim'))
-  nmap <leader>sl :SessionList<CR>
-  nmap <leader>ss :SessionSave<CR>
-  nmap <leader>sc :SessionClose<CR>
+if isdirectory(expand(s:neobundle_dir.'/vim-session'))
 endif
-
+  let g:session_directory = s:cache_dir.'/session'
+  let g:session_default_overwrite = 1
+  let g:session_autosave = 'no'
+  let g:session_autoload = 'no'
+  let g:session_persist_colors = 0
+  let g:session_menu = 0
 set sessionoptions=blank,buffers,curdir,folds,tabpages,winsize
 
 " }}}
@@ -2748,6 +3042,20 @@ if isdirectory(expand(s:neobundle_dir.'/vim-submode'))
 endif
 
 " }}}
+" Gundo.vim "{{{
+" ----------------------------------------------
+if isdirectory(expand(s:neobundle_dir.'/gundo.vim'))
+  nnoremap <Leader>gu  :GundoToggle<CR>
+endif
+
+" }}}
+" Vim-colorpicker "{{{
+" ----------------------------------------------
+if isdirectory(expand(s:neobundle_dir.'/vim-colorpicker'))
+  nmap <Leader>co :ColorPicker<CR>
+endif
+
+" }}}
 
 
 if exists('g:billinux_use_airline')
@@ -2760,7 +3068,6 @@ if exists('g:billinux_use_airline')
     endif
 
     let g:airline_theme = 'badwolf'
-    "let g:airline_theme = 'molokai'
     let g:airline#extensions#tabline#enabled = 1
     let g:airline#themes#molokai#palette = {}
     let g:airline_symbols = {}
@@ -2769,22 +3076,19 @@ if exists('g:billinux_use_airline')
 
     if !exists('g:airline_powerline_fonts')
       let g:airline_powerline_fonts=1
-    else
-      " unicode symbols
-      let g:airline_left_sep          =  '⮀'
-      let g:airline_left_alt_sep      =  '⮁'
-      let g:airline_right_sep         =  '⮂'
-      let g:airline_right_alt_sep     =  '⮃'
-      let g:airline_symbols.linenr = '␊'
-      let g:airline_symbols.linenr = '⭡'
-      " let g:airline_symbols.branch = '⎇'
-      let g:airline_symbols.branch     =  '⭠'
-      let g:airline_symbols.readonly = ''
-      "let g:airline_ymbols.readonly   =  '⭤'
-      let g:airline_symbols.paste = 'ρ'
-      "let g:airline_symbols.paste = 'Þ'
-      let g:airline_symbols.whitespace = 'Ξ'
     endif
+    ""else
+     "" " unicode symbols
+     "" let g:airline_left_sep          =  '⮀'
+     "" let g:airline_left_alt_sep      =  '⮁'
+     "" let g:airline_right_sep         =  '⮂'
+     "" let g:airline_right_alt_sep     =  '⮃'
+     "" let g:airline_symbols.linenr = '␊'
+     "" let g:airline_symbols.linenr = '⭡'
+     "" let g:airline_symbols.branch     =  '⭠'
+     "" let g:airline_symbols.readonly = ''
+     "" let g:airline_symbols.paste = 'ρ'
+   "" endif
 
     " Customization
   "  let g:airline_section_b = '%{strftime("%c")}'
